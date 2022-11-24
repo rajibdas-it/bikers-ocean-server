@@ -1,8 +1,8 @@
 const express = require("express");
 const cors = require("cors");
+require("dotenv").config();
 const port = process.env.PORT || 5000;
 const app = express();
-require("dotenv").config();
 
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion } = require("mongodb");
@@ -42,9 +42,20 @@ async function run() {
     const usersCollection = client.db("bikersOcean").collection("users");
     const bookingsCollection = client.db("bikersOcean").collection("bookings");
 
-    app.post("/users", async (req, res) => {
+    app.put("/users", async (req, res) => {
       const user = req.body;
-      const result = await usersCollection.insertOne(user);
+      const filter = { email: user.email };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: user,
+      };
+      const result = await usersCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      // const result = await usersCollection.insertOne(user);
+      // console.log(result);
       res.send(result);
     });
 
@@ -72,6 +83,10 @@ async function run() {
     app.get("/bookings", verifyJWT, async (req, res) => {
       const email = req.query.email;
       const filter = { email: email };
+      const decodedEmail = req.decoded;
+      if (email !== decodedEmail) {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
       const result = await bookingsCollection.find(filter).toArray();
       res.send(result);
     });
