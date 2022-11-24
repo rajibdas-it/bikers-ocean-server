@@ -22,9 +22,25 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "Unauthorized Access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.AccessToken, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
+
 async function run() {
   try {
     const usersCollection = client.db("bikersOcean").collection("users");
+    const bookingsCollection = client.db("bikersOcean").collection("bookings");
 
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -44,7 +60,20 @@ async function run() {
         return res.send({ accessToken: token });
       }
 
-      res.status(403).send({ accessToken: "", message: "Forbidden" });
+      return res.status(403).send({ accessToken: "", message: "Forbidden" });
+    });
+
+    app.post("/bookings", async (req, res) => {
+      const booking = req.body;
+      const result = await bookingsCollection.insertOne(booking);
+      res.send(result);
+    });
+
+    app.get("/bookings", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const filter = { email: email };
+      const result = await bookingsCollection.find(filter).toArray();
+      res.send(result);
     });
   } finally {
   }
