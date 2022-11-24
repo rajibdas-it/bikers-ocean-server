@@ -3,6 +3,8 @@ const cors = require("cors");
 const port = process.env.PORT || 5000;
 const app = express();
 require("dotenv").config();
+
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
 app.use(express.json());
@@ -28,6 +30,21 @@ async function run() {
       const user = req.body;
       const result = await usersCollection.insertOne(user);
       res.send(result);
+    });
+
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user) {
+        console.log(user);
+        const token = jwt.sign({ email }, process.env.AccessToken, {
+          expiresIn: "1h",
+        });
+        return res.send({ accessToken: token });
+      }
+
+      res.status(403).send({ accessToken: "", message: "Forbidden" });
     });
   } finally {
   }
