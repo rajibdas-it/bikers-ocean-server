@@ -41,6 +41,10 @@ async function run() {
   try {
     const usersCollection = client.db("bikersOcean").collection("users");
     const bookingsCollection = client.db("bikersOcean").collection("bookings");
+    const categoryCollection = client
+      .db("bikersOcean")
+      .collection("categories");
+    const productsCollection = client.db("bikersOcean").collection("products");
 
     app.put("/users", async (req, res) => {
       const user = req.body;
@@ -59,12 +63,33 @@ async function run() {
       res.send(result);
     });
 
+    // app.get("/users/admin/:email", async (req, res) => {
+    //   const email = req.params.email;
+    //   const query = { email: email };
+    //   const user = await usersCollection.findOne(query);
+    //   console.log(user);
+    //   if (!user) {
+    //     return res.status(403).send({ message: "No User" });
+    //   }
+    //   res.send({ isAdmin: user.role === "admin" });
+    // });
+    // app.get("/users/seller/:email", async (req, res) => {
+    //   const email = req.params.email;
+    //   const query = { email: email };
+    //   const user = await usersCollection.findOne(query);
+    //   console.log(user);
+    //   if (!user) {
+    //     return res.status(403).send({ message: "No User" });
+    //   }
+    //   res.send({ isSeller: user.role === "seller" });
+    // });
+
     app.get("/jwt", async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       if (user) {
-        console.log(user);
+        // console.log(user);
         const token = jwt.sign({ email }, process.env.AccessToken, {
           expiresIn: "1h",
         });
@@ -72,6 +97,42 @@ async function run() {
       }
 
       return res.status(403).send({ accessToken: "", message: "Forbidden" });
+    });
+
+    app.post("/categories", async (req, res) => {
+      const category = req.body;
+      const result = await categoryCollection.insertOne(category);
+      // console.log(result);
+      res.send(result);
+    });
+
+    app.get("/categories", async (req, res) => {
+      const query = {};
+      const categories = await categoryCollection.find(query).toArray();
+      res.send(categories);
+    });
+
+    app.get("/category/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { categoryId: id };
+      const products = await productsCollection.find(filter).toArray();
+      res.send(products);
+    });
+
+    app.get("/productCategory", async (req, res) => {
+      const query = {};
+      const result = await categoryCollection
+        .find(query)
+        .project({ categoryName: 1 })
+        .toArray();
+      res.send(result);
+    });
+
+    app.post("/products", async (req, res) => {
+      const product = req.body;
+      const result = await productsCollection.insertOne(product);
+      // console.log(result);
+      res.send(result);
     });
 
     app.post("/bookings", async (req, res) => {
