@@ -151,6 +151,14 @@ async function run() {
       const result = await bookingsCollection.find(filter).toArray();
       res.send(result);
     });
+
+    app.get("/verifyseller/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const seller = await usersCollection.findOne(filter);
+      // console.log(seller);
+      res.send(seller);
+    });
   } finally {
   }
 }
