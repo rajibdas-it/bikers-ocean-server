@@ -49,6 +49,9 @@ async function run() {
       .db("bikersOcean")
       .collection("advertise");
     const wishlistCollection = client.db("bikersOcean").collection("wishlists");
+    const reportedItemsCollection = client
+      .db("bikersOcean")
+      .collection("reportedItem");
 
     app.put("/users", async (req, res) => {
       const user = req.body;
@@ -176,14 +179,21 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/bookings", verifyJWT, async (req, res) => {
+    app.get("/bookings", async (req, res) => {
       const email = req.query.email;
       const filter = { email: email };
-      const decodedEmail = req.decoded;
-      if (email !== decodedEmail) {
-        return res.status(403).send({ message: "Forbidden Access" });
-      }
+      // const decodedEmail = req.decoded;
+      // if (email !== decodedEmail) {
+      //   return res.status(403).send({ message: "Forbidden Access" });
+      // }
       const result = await bookingsCollection.find(filter).toArray();
+      res.send(result);
+    });
+
+    app.delete("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await bookingsCollection.deleteOne(filter);
       res.send(result);
     });
 
@@ -267,6 +277,21 @@ async function run() {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const result = await wishlistCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+    app.post("/reportedItems", async (req, res) => {
+      const reportedItem = req.body;
+      const result = await reportedItemsCollection.insertOne(reportedItem);
+      res.send(result);
+    });
+
+    app.get("/reportedItems", async (req, res) => {
+      const query = {};
+      const result = await reportedItemsCollection
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
       res.send(result);
     });
   } finally {
