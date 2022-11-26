@@ -142,6 +142,19 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/products", async (req, res) => {
+      const email = req.query.email;
+      const filter = { sellerEmail: email };
+      const products = await productsCollection.find(filter).toArray();
+      res.send(products);
+    });
+    app.delete("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const products = await productsCollection.deleteOne(filter);
+      res.send(products);
+    });
+
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
       const result = await bookingsCollection.insertOne(booking);
