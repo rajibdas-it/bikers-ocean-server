@@ -48,6 +48,7 @@ async function run() {
     const advertiseProductCollection = client
       .db("bikersOcean")
       .collection("advertise");
+    const wishlistCollection = client.db("bikersOcean").collection("wishlists");
 
     app.put("/users", async (req, res) => {
       const user = req.body;
@@ -133,7 +134,10 @@ async function run() {
     app.get("/category/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { categoryId: id };
-      const products = await productsCollection.find(filter).toArray();
+      const products = await productsCollection
+        .find(filter)
+        .sort({ date: -1 })
+        .toArray();
       res.send(products);
     });
 
@@ -224,6 +228,7 @@ async function run() {
 
     app.patch("/verifySeller/:id", async (req, res) => {
       const id = req.params.id;
+
       const filter = { _id: ObjectId(id) };
       const updatedDoc = {
         $set: {
@@ -240,6 +245,29 @@ async function run() {
       const seller = await usersCollection.findOne(filter);
       // console.log(seller);
       res.send(seller);
+    });
+
+    app.post("/mywishlist", async (req, res) => {
+      const item = req.body;
+      const result = await wishlistCollection.insertOne(item);
+      res.send(result);
+    });
+
+    app.get("/mywishlist", async (req, res) => {
+      const email = req.query.email;
+      const filter = { userEmail: email };
+      const result = await wishlistCollection
+        .find(filter)
+        .sort({ date: -1 })
+        .toArray();
+      res.send(result);
+    });
+
+    app.delete("/mywishlist/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await wishlistCollection.deleteOne(filter);
+      res.send(result);
     });
   } finally {
   }
