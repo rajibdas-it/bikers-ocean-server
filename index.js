@@ -203,6 +203,17 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/allUsers", async (req, res) => {
+      const query = { role: "user" };
+      const allUsers = await usersCollection.find(query).toArray();
+      res.send(allUsers);
+    });
+    app.get("/allSeller", async (req, res) => {
+      const query = { role: "seller" };
+      const allSeller = await usersCollection.find(query).toArray();
+      res.send(allSeller);
+    });
+
     app.get("/verifyseller/:email", async (req, res) => {
       const email = req.params.email;
       const filter = { email: email };
