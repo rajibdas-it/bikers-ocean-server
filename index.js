@@ -66,6 +66,14 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      // console.log(id);
+      const filter = { _id: ObjectId(id) };
+      const result = await usersCollection.deleteOne(filter);
+      res.send(result);
+    });
+
     // app.get("/users/admin/:email", async (req, res) => {
     //   const email = req.params.email;
     //   const query = { email: email };
@@ -212,6 +220,18 @@ async function run() {
       const query = { role: "seller" };
       const allSeller = await usersCollection.find(query).toArray();
       res.send(allSeller);
+    });
+
+    app.patch("/verifySeller/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: "verified",
+        },
+      };
+      const result = await usersCollection.updateOne(filter, updatedDoc);
+      res.send(result);
     });
 
     app.get("/verifyseller/:email", async (req, res) => {
