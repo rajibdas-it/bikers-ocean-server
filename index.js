@@ -45,6 +45,9 @@ async function run() {
       .db("bikersOcean")
       .collection("categories");
     const productsCollection = client.db("bikersOcean").collection("products");
+    const advertiseProductCollection = client
+      .db("bikersOcean")
+      .collection("advertise");
 
     app.put("/users", async (req, res) => {
       const user = req.body;
@@ -169,6 +172,34 @@ async function run() {
         return res.status(403).send({ message: "Forbidden Access" });
       }
       const result = await bookingsCollection.find(filter).toArray();
+      res.send(result);
+    });
+
+    app.put("/createAdvertise", async (req, res) => {
+      const advertiseProduct = req.body;
+      const filter = { productId: advertiseProduct.productId };
+      const options = { upsert: true };
+      // console.log(advertiseProduct);
+      const updatedDoc = {
+        $set: {
+          date: advertiseProduct.date,
+          productId: advertiseProduct.productId,
+          productName: advertiseProduct.productName,
+          image: advertiseProduct.image,
+          status: advertiseProduct.status,
+        },
+      };
+      const result = await advertiseProductCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    app.get("/createAdvertise", async (req, res) => {
+      const query = {};
+      const result = await advertiseProductCollection.find(query).toArray();
       res.send(result);
     });
 
