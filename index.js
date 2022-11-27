@@ -303,6 +303,24 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/deletedReportedItem/:id", async (req, res) => {
+      const id = req.params.id;
+      // console.log(id);
+      const filter = { _id: ObjectId(id) };
+      const result = await productsCollection.deleteOne(filter);
+      const reportedItemFilter = { productId: id };
+      const updatedDoc = {
+        $set: {
+          adminComments: "Product Deleted",
+        },
+      };
+      const updateReportedItemResult = await reportedItemsCollection.updateOne(
+        reportedItemFilter,
+        updatedDoc
+      );
+      res.send(result);
+    });
+
     app.post("/create-payment-intent", async (req, res) => {
       const booking = req.body;
       const price = booking.price;

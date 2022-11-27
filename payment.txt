@@ -1,9 +1,0 @@
-{
-  name: 'xalef1',
-  email: 'xalef18902@kuvasin.com',
-  transactionId: 'pi_3M8et5ALzMKa44HY01Lo508N',
-  productId: '63825b8a8f1bbed7fcdc964a',
-  productName: 'Yamaha R15 V1',
-  bookingId: '6382e1f6cdcfd7fee7f55437',
-  price: '350000'
-}
