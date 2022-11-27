@@ -104,17 +104,6 @@ async function run() {
       res.send({ isSeller: user.role === "seller" });
     });
 
-    // app.get("/users/seller/:email", async (req, res) => {
-    //   const email = req.params.email;
-    //   const query = { email: email };
-    //   const user = await usersCollection.findOne(query);
-    //   console.log(user);
-    //   if (!user) {
-    //     return res.status(403).send({ message: "No User" });
-    //   }
-    //   res.send({ isSeller: user.role === "seller" });
-    // });
-
     // Category Related API
     app.post("/categories", async (req, res) => {
       const category = req.body;
