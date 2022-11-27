@@ -40,6 +40,7 @@ function verifyJWT(req, res, next) {
 
 async function run() {
   try {
+    // Database Collections
     const usersCollection = client.db("bikersOcean").collection("users");
     const bookingsCollection = client.db("bikersOcean").collection("bookings");
     const categoryCollection = client
@@ -54,6 +55,8 @@ async function run() {
       .db("bikersOcean")
       .collection("reportedItem");
     const paymentsCollection = client.db("bikersOcean").collection("payments");
+
+    //Authentication and Authorization Related API
 
     app.put("/users", async (req, res) => {
       const user = req.body;
@@ -80,6 +83,21 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user) {
+        // console.log(user);
+        const token = jwt.sign({ email }, process.env.AccessToken, {
+          expiresIn: "1h",
+        });
+        return res.send({ accessToken: token });
+      }
+
+      return res.status(403).send({ accessToken: "", message: "Forbidden" });
+    });
+
     // app.get("/users/admin/:email", async (req, res) => {
     //   const email = req.params.email;
     //   const query = { email: email };
@@ -101,21 +119,7 @@ async function run() {
     //   res.send({ isSeller: user.role === "seller" });
     // });
 
-    app.get("/jwt", async (req, res) => {
-      const email = req.query.email;
-      const query = { email: email };
-      const user = await usersCollection.findOne(query);
-      if (user) {
-        // console.log(user);
-        const token = jwt.sign({ email }, process.env.AccessToken, {
-          expiresIn: "1h",
-        });
-        return res.send({ accessToken: token });
-      }
-
-      return res.status(403).send({ accessToken: "", message: "Forbidden" });
-    });
-
+    // Category Related API
     app.post("/categories", async (req, res) => {
       const category = req.body;
       const result = await categoryCollection.insertOne(category);
@@ -145,7 +149,7 @@ async function run() {
         .toArray();
       res.send(products);
     });
-
+    //Product Related API
     app.get("/productCategory", async (req, res) => {
       const query = {};
       const result = await categoryCollection
@@ -168,13 +172,14 @@ async function run() {
       const products = await productsCollection.find(filter).toArray();
       res.send(products);
     });
+
     app.delete("/products/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const products = await productsCollection.deleteOne(filter);
       res.send(products);
     });
-
+    // Booking Related API
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
       const result = await bookingsCollection.insertOne(booking);
@@ -205,6 +210,30 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/mywishlist", async (req, res) => {
+      const item = req.body;
+      const result = await wishlistCollection.insertOne(item);
+      res.send(result);
+    });
+
+    app.get("/mywishlist", async (req, res) => {
+      const email = req.query.email;
+      const filter = { userEmail: email };
+      const result = await wishlistCollection
+        .find(filter)
+        .sort({ date: -1 })
+        .toArray();
+      res.send(result);
+    });
+
+    app.delete("/mywishlist/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await wishlistCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+    // Product Advertise Related API
     app.put("/createAdvertise", async (req, res) => {
       const advertiseProduct = req.body;
       const filter = { productId: advertiseProduct.productId };
@@ -233,11 +262,13 @@ async function run() {
       res.send(result);
     });
 
+    // Admin Related API
     app.get("/allUsers", async (req, res) => {
       const query = { role: "user" };
       const allUsers = await usersCollection.find(query).toArray();
       res.send(allUsers);
     });
+
     app.get("/allSeller", async (req, res) => {
       const query = { role: "seller" };
       const allSeller = await usersCollection.find(query).toArray();
@@ -246,7 +277,6 @@ async function run() {
 
     app.patch("/verifySeller/:id", async (req, res) => {
       const id = req.params.id;
-
       const filter = { _id: ObjectId(id) };
       const updatedDoc = {
         $set: {
@@ -263,29 +293,6 @@ async function run() {
       const seller = await usersCollection.findOne(filter);
       // console.log(seller);
       res.send(seller);
-    });
-
-    app.post("/mywishlist", async (req, res) => {
-      const item = req.body;
-      const result = await wishlistCollection.insertOne(item);
-      res.send(result);
-    });
-
-    app.get("/mywishlist", async (req, res) => {
-      const email = req.query.email;
-      const filter = { userEmail: email };
-      const result = await wishlistCollection
-        .find(filter)
-        .sort({ date: -1 })
-        .toArray();
-      res.send(result);
-    });
-
-    app.delete("/mywishlist/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: ObjectId(id) };
-      const result = await wishlistCollection.deleteOne(filter);
-      res.send(result);
     });
 
     app.post("/reportedItems", async (req, res) => {
@@ -321,6 +328,7 @@ async function run() {
       res.send(result);
     });
 
+    // Payment Related API
     app.post("/create-payment-intent", async (req, res) => {
       const booking = req.body;
       const price = booking.price;
