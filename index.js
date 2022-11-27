@@ -186,10 +186,11 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/bookings", async (req, res) => {
+    app.get("/bookings", verifyJWT, async (req, res) => {
       const email = req.query.email;
       const filter = { email: email };
-      // const decodedEmail = req.decoded;
+      // console.log(req.headers.authorization);
+      // const decodedEmail = req.decoded.email;
       // if (email !== decodedEmail) {
       //   return res.status(403).send({ message: "Forbidden Access" });
       // }
