@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 const app = express();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -52,6 +53,7 @@ async function run() {
     const reportedItemsCollection = client
       .db("bikersOcean")
       .collection("reportedItem");
+    const paymentsCollection = client.db("bikersOcean").collection("payments");
 
     app.put("/users", async (req, res) => {
       const user = req.body;
@@ -189,6 +191,12 @@ async function run() {
       const result = await bookingsCollection.find(filter).toArray();
       res.send(result);
     });
+    app.get("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await bookingsCollection.findOne(filter);
+      res.send(result);
+    });
 
     app.delete("/bookings/:id", async (req, res) => {
       const id = req.params.id;
@@ -292,6 +300,66 @@ async function run() {
         .find(query)
         .sort({ date: -1 })
         .toArray();
+      res.send(result);
+    });
+
+    app.post("/create-payment-intent", async (req, res) => {
+      const booking = req.body;
+      const price = booking.price;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        currency: "usd",
+        amount: amount,
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      // console.log(payment);
+      const result = await paymentsCollection.insertOne(payment);
+
+      //Booking status update
+      const bookingId = payment.bookingId;
+      const bookingFilter = { _id: ObjectId(bookingId) };
+      const updatedBookingDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+      const bookingUpdatedResult = await bookingsCollection.updateOne(
+        bookingFilter,
+        updatedBookingDoc
+      );
+
+      //Update for remove item from advertise section.
+      const productId = payment.productId;
+      const advertiseFilter = { productId: productId };
+      const advertiseUpdatedDoc = {
+        $set: {
+          status: "sold",
+        },
+      };
+      const advertiseUpdatedResult = await advertiseProductCollection.updateOne(
+        advertiseFilter,
+        advertiseUpdatedDoc
+      );
+
+      //Update for change product status in product section.
+      const productFilter = { _id: ObjectId(productId) };
+      const productUpdatedDoc = {
+        $set: {
+          status: "sold",
+        },
+      };
+      const productUpdatedResult = await productsCollection.updateOne(
+        productFilter,
+        productUpdatedDoc
+      );
       res.send(result);
     });
   } finally {
