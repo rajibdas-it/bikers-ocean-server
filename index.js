@@ -75,14 +75,6 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/users/:id", async (req, res) => {
-      const id = req.params.id;
-      // console.log(id);
-      const filter = { _id: ObjectId(id) };
-      const result = await usersCollection.deleteOne(filter);
-      res.send(result);
-    });
-
     app.get("/jwt", async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
@@ -98,16 +90,20 @@ async function run() {
       return res.status(403).send({ accessToken: "", message: "Forbidden" });
     });
 
-    // app.get("/users/admin/:email", async (req, res) => {
-    //   const email = req.params.email;
-    //   const query = { email: email };
-    //   const user = await usersCollection.findOne(query);
-    //   console.log(user);
-    //   if (!user) {
-    //     return res.status(403).send({ message: "No User" });
-    //   }
-    //   res.send({ isAdmin: user.role === "admin" });
-    // });
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === "admin" });
+    });
+
+    app.get("/users/seller/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isSeller: user.role === "seller" });
+    });
+
     // app.get("/users/seller/:email", async (req, res) => {
     //   const email = req.params.email;
     //   const query = { email: email };
@@ -190,10 +186,10 @@ async function run() {
       const email = req.query.email;
       const filter = { email: email };
       // console.log(req.headers.authorization);
-      // const decodedEmail = req.decoded.email;
-      // if (email !== decodedEmail) {
-      //   return res.status(403).send({ message: "Forbidden Access" });
-      // }
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
       const result = await bookingsCollection.find(filter).toArray();
       res.send(result);
     });
@@ -232,6 +228,14 @@ async function run() {
       const filter = { _id: ObjectId(id) };
       const result = await wishlistCollection.deleteOne(filter);
       res.send(result);
+    });
+
+    app.get("/verifyseller/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const seller = await usersCollection.findOne(filter);
+      // console.log(seller);
+      res.send(seller);
     });
 
     // Product Advertise Related API
@@ -276,7 +280,14 @@ async function run() {
       res.send(allSeller);
     });
 
-    app.patch("/verifySeller/:id", async (req, res) => {
+    app.patch("/verifySeller/:id", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const updatedDoc = {
@@ -288,15 +299,22 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/verifyseller/:email", async (req, res) => {
-      const email = req.params.email;
-      const filter = { email: email };
-      const seller = await usersCollection.findOne(filter);
-      // console.log(seller);
-      res.send(seller);
+    app.delete("/users/:id", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      // console.log(decodedEmail);
+
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await usersCollection.deleteOne(filter);
+      res.send(result);
     });
 
-    app.post("/reportedItems", async (req, res) => {
+    app.post("/reportedItems", verifyJWT, async (req, res) => {
       const reportedItem = req.body;
       const result = await reportedItemsCollection.insertOne(reportedItem);
       res.send(result);
