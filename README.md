@@ -4,7 +4,7 @@
 
 ### API URL: [https://bikers-ocean-server.vercel.app/](https://bikers-ocean-server.vercel.app/)
 
-- There are lot of api for different purpose like
+- Using Express js for creating different API like
 - Category add, delete api
 - Wishlist add, delete api
 - Booking api
@@ -14,3 +14,6 @@
 - Full Authentication and Authorrization API
 - Avoid unnecessary API request.
 - Using JsonWebToken for verify User, Seller and Admin.
+- Using MongoDB as database.
+- Using CORS to access url.
+- Using dotenv package to hide secret credential.
