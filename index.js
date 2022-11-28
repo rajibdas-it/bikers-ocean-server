@@ -56,6 +56,24 @@ async function run() {
       .collection("reportedItem");
     const paymentsCollection = client.db("bikersOcean").collection("payments");
 
+    const verifyAdmin = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+    const verifySeller = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "seller") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
     //Authentication and Authorization Related API
 
     app.put("/users", async (req, res) => {
@@ -89,14 +107,14 @@ async function run() {
 
       return res.status(403).send({ accessToken: "", message: "Forbidden" });
     });
-
+    // api for useAdmin Hook
     app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       res.send({ isAdmin: user?.role === "admin" });
     });
-
+    // api for useSeller Hook
     app.get("/users/seller/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -104,8 +122,8 @@ async function run() {
       res.send({ isSeller: user.role === "seller" });
     });
 
-    // Category Related API
-    app.post("/categories", async (req, res) => {
+    //-------------- Category Related API -----------------
+    app.post("/categories", verifyJWT, verifyAdmin, async (req, res) => {
       const category = req.body;
       const result = await categoryCollection.insertOne(category);
       // console.log(result);
@@ -118,7 +136,7 @@ async function run() {
       res.send(categories);
     });
 
-    app.delete("/categories/:id", async (req, res) => {
+    app.delete("/categories/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await categoryCollection.deleteOne(query);
@@ -144,28 +162,28 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/products", async (req, res) => {
+    app.post("/products", verifyJWT, verifySeller, async (req, res) => {
       const product = req.body;
       const result = await productsCollection.insertOne(product);
       // console.log(result);
       res.send(result);
     });
 
-    app.get("/products", async (req, res) => {
+    app.get("/products", verifyJWT, verifySeller, async (req, res) => {
       const email = req.query.email;
       const filter = { sellerEmail: email };
       const products = await productsCollection.find(filter).toArray();
       res.send(products);
     });
 
-    app.delete("/products/:id", async (req, res) => {
+    app.delete("/products/:id", verifyJWT, verifySeller, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const products = await productsCollection.deleteOne(filter);
       res.send(products);
     });
     // Booking Related API
-    app.post("/bookings", async (req, res) => {
+    app.post("/bookings", verifyJWT, async (req, res) => {
       const booking = req.body;
       const result = await bookingsCollection.insertOne(booking);
       res.send(result);
@@ -182,6 +200,8 @@ async function run() {
       const result = await bookingsCollection.find(filter).toArray();
       res.send(result);
     });
+
+    //This api use for payment.
     app.get("/bookings/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
@@ -189,7 +209,7 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/bookings/:id", async (req, res) => {
+    app.delete("/bookings/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const result = await bookingsCollection.deleteOne(filter);
@@ -228,7 +248,7 @@ async function run() {
     });
 
     // Product Advertise Related API
-    app.put("/createAdvertise", async (req, res) => {
+    app.put("/createAdvertise", verifyJWT, verifySeller, async (req, res) => {
       const advertiseProduct = req.body;
       const filter = { productId: advertiseProduct.productId };
       const options = { upsert: true };
@@ -257,26 +277,19 @@ async function run() {
     });
 
     // Admin Related API
-    app.get("/allUsers", async (req, res) => {
+    app.get("/allUsers", verifyJWT, verifyAdmin, async (req, res) => {
       const query = { role: "user" };
       const allUsers = await usersCollection.find(query).toArray();
       res.send(allUsers);
     });
 
-    app.get("/allSeller", async (req, res) => {
+    app.get("/allSeller", verifyJWT, verifyAdmin, async (req, res) => {
       const query = { role: "seller" };
       const allSeller = await usersCollection.find(query).toArray();
       res.send(allSeller);
     });
 
-    app.patch("/verifySeller/:id", verifyJWT, async (req, res) => {
-      const decodedEmail = req.decoded.email;
-      const query = { email: decodedEmail };
-      const user = await usersCollection.findOne(query);
-      if (user?.role !== "admin") {
-        return res.status(403).send({ message: "forbidden access" });
-      }
-
+    app.patch("/verifySeller/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const updatedDoc = {
@@ -288,15 +301,15 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/users/:id", verifyJWT, async (req, res) => {
-      const decodedEmail = req.decoded.email;
-      // console.log(decodedEmail);
+    app.delete("/users/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      // const decodedEmail = req.decoded.email;
+      // // console.log(decodedEmail);
 
-      const query = { email: decodedEmail };
-      const user = await usersCollection.findOne(query);
-      if (user?.role !== "admin") {
-        return res.status(403).send({ message: "forbidden access" });
-      }
+      // const query = { email: decodedEmail };
+      // const user = await usersCollection.findOne(query);
+      // if (user?.role !== "admin") {
+      //   return res.status(403).send({ message: "forbidden access" });
+      // }
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const result = await usersCollection.deleteOne(filter);
@@ -309,7 +322,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/reportedItems", async (req, res) => {
+    app.get("/reportedItems", verifyJWT, verifyAdmin, async (req, res) => {
       const query = {};
       const result = await reportedItemsCollection
         .find(query)
@@ -318,23 +331,29 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/deletedReportedItem/:id", async (req, res) => {
-      const id = req.params.id;
-      // console.log(id);
-      const filter = { _id: ObjectId(id) };
-      const result = await productsCollection.deleteOne(filter);
-      const reportedItemFilter = { productId: id };
-      const updatedDoc = {
-        $set: {
-          adminComments: "Product Deleted",
-        },
-      };
-      const updateReportedItemResult = await reportedItemsCollection.updateOne(
-        reportedItemFilter,
-        updatedDoc
-      );
-      res.send(result);
-    });
+    app.delete(
+      "/deletedReportedItem/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        // console.log(id);
+        const filter = { _id: ObjectId(id) };
+        const result = await productsCollection.deleteOne(filter);
+        const reportedItemFilter = { productId: id };
+        const updatedDoc = {
+          $set: {
+            adminComments: "Product Deleted",
+          },
+        };
+        const updateReportedItemResult =
+          await reportedItemsCollection.updateOne(
+            reportedItemFilter,
+            updatedDoc
+          );
+        res.send(result);
+      }
+    );
 
     // Payment Related API
     app.post("/create-payment-intent", async (req, res) => {
